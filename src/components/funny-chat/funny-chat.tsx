@@ -9,8 +9,7 @@ enum TOAST {
 
 @Component({
   tag: 'funny-chat',
-  styleUrl: 'funny-chat.scss',
-  shadow: false
+  styleUrl: 'funny-chat.scss'
 })
 export class FunnyChat {
   socket: any
@@ -35,8 +34,8 @@ export class FunnyChat {
   }
 
   monitorEvents() {
-    this.socket.on('chat message', message => {
-      this.populateMessages(message)
+    this.socket.on('chat message', (content, senderId) => {
+      this.populateMessages(content, senderId)
     })
 
     this.socket.on('user joined', () => {
@@ -46,12 +45,21 @@ export class FunnyChat {
     this.socket.on('disconnect', () => {
       this.notifyService('User has left!', TOAST.ERROR)
     })
+
+    this.socket.on('welcome', id => {
+      this.currentUser = { ...this.currentUser, id }
+    })
   }
 
   handleSubmit(event: Event) {
     event.preventDefault()
 
-    this.socket.emit('chat message', this.inputValue)
+    const preparedMessage = {
+      content: this.inputValue,
+      senderId: this.currentUserId
+    }
+
+    this.socket.emit('chat message', preparedMessage)
   }
 
   handleInput(event) {
@@ -62,8 +70,12 @@ export class FunnyChat {
     this.inputValue = ''
   }
 
-  populateMessages(message) {
-    this.messages = [...this.messages, message]
+  populateMessages(content, senderId) {
+    const newMessage = {
+      content,
+      senderId
+    }
+    this.messages = [...this.messages, newMessage]
   }
 
   registerUser() {
@@ -82,6 +94,14 @@ export class FunnyChat {
     }[type]()
   }
 
+  isCurrentUserTheSender(senderId): boolean {
+    return this.currentUserId === senderId
+  }
+
+  get currentUserId(): string {
+    if (this.currentUser) return this.currentUser.id
+  }
+
   render() {
     return (
       <main>
@@ -93,9 +113,17 @@ export class FunnyChat {
               </div>
               <div class='chatwindow'>
                 {this.messages &&
-                  this.messages.map(message => (
-                    <div class='left'>{message}</div>
-                  ))}
+                  this.messages.map(({ content, senderId }) =>
+                    this.isCurrentUserTheSender(senderId) ? (
+                      <div class='right'>
+                        {content} - {senderId}
+                      </div>
+                    ) : (
+                      <div class='left'>
+                        {content} - {senderId}
+                      </div>
+                    )
+                  )}
               </div>
               <form
                 id='messenger'
