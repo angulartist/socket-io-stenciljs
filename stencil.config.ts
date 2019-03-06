@@ -1,6 +1,7 @@
 import { Config } from '@stencil/core'
 import builtins from 'rollup-plugin-node-builtins'
 import globals from 'rollup-plugin-node-globals'
+import { sass } from '@stencil/sass'
 
 export const config: Config = {
   namespace: 'mycomponent',
@@ -12,7 +13,7 @@ export const config: Config = {
       serviceWorker: null // disable service workers
     }
   ],
-  plugins: [builtins(), globals()],
+  plugins: [builtins(), globals(), sass()],
   nodeResolve: {
     browser: true,
     preferBuiltins: true // Workaround for https://github.com/ionic-team/stencil/issues/1326

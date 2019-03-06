@@ -1,10 +1,16 @@
 import { Component, State } from '@stencil/core'
 import io from 'socket.io-client'
+import toastr from 'toastr'
+
+enum TOAST {
+  INFO,
+  ERROR
+}
 
 @Component({
   tag: 'funny-chat',
-  styleUrl: 'funny-chat.css',
-  shadow: true
+  styleUrl: 'funny-chat.scss',
+  shadow: false
 })
 export class FunnyChat {
   socket: any
@@ -13,18 +19,39 @@ export class FunnyChat {
 
   @State() messages: any[] = []
 
-  componentDidLoad() {
+  componentWillLoad() {
     this.establishSocket()
     this.registerUser()
     this.monitorEvents()
+    this.emitEvents()
   }
 
   establishSocket() {
     this.socket = io('http://localhost:3000')
   }
 
+  emitEvents() {
+    this.socket.emit('user joined')
+  }
+
+  monitorEvents() {
+    this.socket.on('chat message', message => {
+      this.populateMessages(message)
+    })
+
+    this.socket.on('user joined', () => {
+      this.notifyService('User has joined!', TOAST.INFO)
+    })
+
+    this.socket.on('disconnect', () => {
+      this.notifyService('User has left!', TOAST.ERROR)
+    })
+  }
+
   handleSubmit(event: Event) {
     event.preventDefault()
+
+    this.socket.emit('chat message', this.inputValue)
   }
 
   handleInput(event) {
@@ -35,14 +62,8 @@ export class FunnyChat {
     this.inputValue = ''
   }
 
-  monitorEvents() {
-    this.socket.on('client_notification', data => {
-      this.displayNotification(data)
-    })
-  }
-
-  displayNotification({ text }) {
-    this.messages = [...this.messages, text]
+  populateMessages(message) {
+    this.messages = [...this.messages, message]
   }
 
   registerUser() {
@@ -50,19 +71,53 @@ export class FunnyChat {
     this.socket.emit('new_client', this.currentUser.nickName)
   }
 
+  notifyService(message: string, type: TOAST) {
+    return {
+      0() {
+        toastr.info(message, 'WOOOAH!')
+      },
+      1() {
+        toastr.error(message, 'OHH :(')
+      }
+    }[type]()
+  }
+
   render() {
     return (
       <main>
-        <ul id='messages'>
-          {this.messages && this.messages.map(message => <li>{message}</li>)}
-        </ul>
-        <form onSubmit={event => this.handleSubmit(event)}>
-          <input
-            autocomplete='off'
-            onInput={event => this.handleInput(event)}
-          />
-          <button>Send</button>
-        </form>
+        <div id='wrapper'>
+          <div class='window'>
+            <div class='windowrap'>
+              <div class='bot'>
+                <h3>MESSENGER</h3>
+              </div>
+              <div class='chatwindow'>
+                {this.messages &&
+                  this.messages.map(message => (
+                    <div class='left'>{message}</div>
+                  ))}
+              </div>
+              <form
+                id='messenger'
+                name='messenger'
+                onSubmit={event => this.handleSubmit(event)}
+              >
+                <input
+                  type='text'
+                  name='enter'
+                  class='enter'
+                  value=''
+                  placeholder='say something...'
+                  id='message'
+                  onInput={event => this.handleInput(event)}
+                />
+                <div class='send'>
+                  <input type='submit' value='' id='btn' tabindex='-1' />
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       </main>
     )
   }
