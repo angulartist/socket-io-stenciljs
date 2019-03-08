@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 let users = []
 
 io.on('connection', socket => {
-  registerUser(socket)
+  registerUser()
 
   socket.on('disconnect', () => {
     io.sockets.emit('disconnect')
@@ -33,8 +33,8 @@ io.on('connection', socket => {
   })
 })
 
-const registerUser = ({ id }) => {
-  io.emit('welcome', id)
+const registerUser = () => {
+  io.emit('welcome')
 }
 
 http.listen(PORT, () => {

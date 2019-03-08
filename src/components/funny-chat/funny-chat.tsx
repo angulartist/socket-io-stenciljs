@@ -1,6 +1,7 @@
 import { Component, State } from '@stencil/core'
 import io from 'socket.io-client'
 import toastr from 'toastr'
+import faker from 'faker'
 
 enum TOAST {
   INFO,
@@ -14,7 +15,6 @@ enum TOAST {
 export class FunnyChat {
   socket: any
   inputValue: string
-  currentUser: any
 
   @State() messages: any[] = []
 
@@ -46,8 +46,8 @@ export class FunnyChat {
       this.notifyService('User has left!', TOAST.ERROR)
     })
 
-    this.socket.on('welcome', id => {
-      this.currentUser = { ...this.currentUser, id }
+    this.socket.on('welcome', () => {
+      this.registerUser()
     })
   }
 
@@ -56,7 +56,7 @@ export class FunnyChat {
 
     const preparedMessage = {
       content: this.inputValue,
-      senderId: this.currentUserId
+      senderId: this.socket.senderId
     }
 
     this.socket.emit('chat message', preparedMessage)
@@ -79,8 +79,7 @@ export class FunnyChat {
   }
 
   registerUser() {
-    this.currentUser = { ...this.currentUser, nickName: 'toto' }
-    this.socket.emit('new_client', this.currentUser.nickName)
+    this.socket.senderId = this.randomUserName
   }
 
   notifyService(message: string, type: TOAST) {
@@ -95,11 +94,15 @@ export class FunnyChat {
   }
 
   isCurrentUserTheSender(senderId): boolean {
-    return this.currentUserId === senderId
+    return this.currentSenderId === senderId
   }
 
-  get currentUserId(): string {
-    if (this.currentUser) return this.currentUser.id
+  get currentSenderId(): string {
+    if (this.socket) return this.socket.senderId
+  }
+
+  get randomUserName(): string {
+    return faker.name.findName()
   }
 
   render() {
